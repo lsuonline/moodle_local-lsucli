@@ -2,16 +2,17 @@
 require_once(__DIR__ . '/../../config.php');
 require_once($CFG->libdir.'/adminlib.php');
 
-admin_externalpage_setup('local_lsucli');
+//admin_externalpage_setup('local_lsucli');
+
+$context = context_system::instance();
+
+$PAGE->set_context($context);
+$PAGE->set_url('/local/lsucli/index.php');
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('lsucli', 'local_lsucli'));
 
 $cliscripts = array_diff(scandir($CFG->dirroot . '/admin/cli'), array('..', '.'));
-
-echo"<pre>";
-var_dump($cliscripts);
-echo"</pre>";
 
 $table = new html_table();
 $table->head = array(get_string('scriptname', 'local_lsucli'), get_string('schedule'));

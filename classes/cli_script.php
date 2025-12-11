@@ -130,15 +130,68 @@ class CLIScript {
         return $this->options;
     }
 
+    /** @var array<array<array>> SPECIAL_CASE_PROPS An array of corrected values for poor documentation in the script files. Structure is [file_name][longname][property] = <NEW_VALUE> */
+    const SPECIAL_CASE_PROPS = [
+        '' => [
+            '' => [
+                'type' => OptionType::STRING,
+            ],
+        ],
+        'adhoc_task' => [
+            'classname' => [
+                'type' => OptionType::STRING,
+            ],
+            'id' => [
+                'type' => OptionType::NUMBER,
+            ],
+        ],
+        'build_theme_css' => [
+            'themes' => [
+                'type' => OptionType::STRING,
+            ]
+        ],
+        'checks' => [
+            'filter' => [
+                'type' => OptionType::STRING,
+            ],
+            'type' => [
+                'type' => OptionType::STRING,
+            ],
+        ],
+        'delete_course' => [
+            'courseid' => [
+                'type' => OptionType::STRING,
+                'required' => true,
+            ],
+        ],
+        'fix_course_sequence' => [
+            'courses' => [
+                'type' => OptionType::STRING,
+                'required' => true,
+            ],
+        ],
+        'generate_key' => [
+            'method' => [
+                'type' => OptionType::STRING,
+            ],
+        ],
+        'purge_caches' => [
+            'courses' => [
+                'type' => OptionType::STRING,
+            ],
+        ],
+    ];
     private function special_cases() {
+        $params = self::SPECIAL_CASE_PROPS[$this->file_name];
+        if (empty($params)) {
+            return;
+        }
         foreach ($this->options as $option) {
-            if (
-                ($option->longname == 'courses' && $this->file_name == 'fix_course_sequence') ||
-                ($option->longname == 'courseid' && $this->file_name == 'delete_course')
-            ) {
-                $option->type = OptionType::STRING;
-                $option->required = true;
+            if (!key_exists($option->longname, $params)) {
                 continue;
+            }
+            foreach ($params[$option->longname] as $key => $value) {
+                $option->{$key} = $value;
             }
         }
     }

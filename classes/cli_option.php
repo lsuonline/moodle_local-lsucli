@@ -15,7 +15,6 @@ class CLIOption {
     public string $longname;
     public ?string $description;
     public OptionType $type;
-    public bool $required = false;
 
     public function __construct($shortname, $longname, $description, OptionType $type) {
         $this->shortname = $shortname;

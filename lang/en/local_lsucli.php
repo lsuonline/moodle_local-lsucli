@@ -5,4 +5,3 @@ $string['pluginname'] = 'LSU CLI Tasks';
 $string['lsucli'] = 'LSU CLI Tasks';
 $string['lsucli_desc'] = 'Run CLI scripts as adhoc tasks.';
 $string['scriptname'] = 'Script name';
-$string['err_required'] = 'This field is required.';

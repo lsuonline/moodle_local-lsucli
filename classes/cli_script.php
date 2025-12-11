@@ -3,10 +3,32 @@ namespace local_lsucli;
 
 defined('MOODLE_INTERNAL') || die();
 
+if (!function_exists('array_find_key')) {
+    #PHP version is less than 8.4
+    /**
+     * @template TKey of int|string
+     * @template TValue
+     * @param array<TKey, TValue> $array
+     * @param (callable(TValue $value, TKey $key): bool)|(callable(TValue $value): bool) $callback
+     * @return TKey|null
+     * 
+     * @since 8.4
+     */
+    function array_find_key(array $array, callable $callback): mixed {
+        foreach ($array as $k => $v) {
+            if ($callback($v, $k)) {
+                return $k;
+            }
+        }
+        return null;
+    }
+}
+
 class CLIScript {
     public string $file_path;
     public string $file_name;
     public string $help_text;
+    /** @var CLIOption[] $options */
     public array $options;
     public string $example_text;
 
@@ -15,17 +37,48 @@ class CLIScript {
         $this->file_path = "$CFG->dirroot/admin/cli/$file_name";
         $file_name = substr($file_name, 0, -4);
         $this->file_name = ltrim(strtolower(preg_replace('/([A-Z])/', '_$1', $file_name)), '_');
+        $this->grep_help_text();
         $this->parse_help_text();
+    }
+
+    function grep_help_text() {
+        $full_text = file_get_contents($this->file_path);
+        $lines = explode(PHP_EOL, $full_text);
+        $start_idx = array_find_key($lines, function($v, $k) {
+            return preg_match('/s*(\$help|\$usage|\$options\[\'help\'\]).*/', $v);
+        });
+        if ($start_idx !== null) {
+            $lines = array_slice($lines, $start_idx + 0);
+        }
+        $end_idx = array_find_key($lines, function($v, $k) {
+            return preg_match('/^\s*(EOT|EOL|EOF|");\s*/', $v);
+        });
+        if ($end_idx !== null) {
+            $lines = array_slice($lines, 0, $end_idx);
+        }
+        $this->help_text = implode(PHP_EOL, $lines);
+        $this->help_text = preg_replace(
+            '/.*\$options.*/',
+            '',
+            $this->help_text,
+        ) ?? '';
+        $this->help_text = preg_replace(
+            '/.*\/\/.*/',
+            '',
+            $this->help_text,
+        ) ?? '';
+        $this->help_text = preg_replace(
+            '/\s*(\$help|\$usage|echo)\s*\=?\s*(<<<)?(EOT|EOL|EOF|echo)?"?\s*/',
+            '',
+            $this->help_text
+        ) ?? '';
     }
 
     /**
      * Scans the script file for its information.
      */
-
     function parse_help_text() {
-        $contents = file_get_contents($this->file_path);
-        $lines = explode(PHP_EOL, $contents);
-        $help_lines = [];
+        $lines = explode(PHP_EOL, $this->help_text);
         $option_lines = [];
         $example_lines = [];
         $stage = 0;
@@ -35,7 +88,6 @@ class CLIScript {
                     $stage = 1;
                     continue;
                 }
-                $help_lines[] = $line;
             } else if ($stage == 1) {
                 if (trim($line) === '' && count($option_lines) > 0) {
                     $stage = 2;
@@ -49,8 +101,11 @@ class CLIScript {
                 $example_lines[] = $line;
             }
         }
-        $this->help_text = implode(PHP_EOL, $help_lines);
+        // exec("php $this->file_path -- -h", $output);
+        // $this->help_text = implode(PHP_EOL, $output);
+        // $this->help_text = preg_replace('/^Warning\:.*$', '', $this->help_text) ?? '';
         $this->options = CLIOption::parse_lines($option_lines);
+        $this->special_cases();
         $this->example_text = implode(PHP_EOL, $example_lines);
     }
 
@@ -74,5 +129,21 @@ class CLIScript {
      */
     public function get_options(): array {
         return $this->options;
+    }
+
+    /**
+     * 
+     */
+    private function special_cases() {
+        foreach ($this->options as $option) {
+            if (
+                ($option->longname == 'courses' && $this->file_name == 'fix_course_sequence') ||
+                ($option->longname == 'courseid' && $this->file_name == 'delete_course')
+            ) {
+                $option->type = OptionType::STRING;
+                $option->required = true;
+                continue;
+            }
+        }
     }
 }

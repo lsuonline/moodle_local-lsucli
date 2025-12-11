@@ -34,9 +34,16 @@ class lsucli_form extends \moodleform
     {
         $mform = $this->_form;
         foreach ($cliscripts as $script) {
-            $group = $this->add_option_elements($script);
-            $mform->addGroup($group, $script->file_name, 'Parameters', null, false);
-            $mform->hideIf($script->file_name, 'script', 'neq', $script->file_name);
+            $help_text = stripslashes($script->help_text);
+            $help_text = htmlspecialchars($help_text);
+
+            $group = [$mform->createElement('static', null, null, "<pre>$help_text </pre>")];
+            $mform->addGroup($group, $script->file_name . "_help", 'Documentation', null, false);
+            $mform->hideIf($script->file_name . '_help', 'script', 'neq', $script->file_name);
+
+            $group = $this->create_option_elements($script);
+            $mform->addGroup($group, $script->file_name . '_params', 'Options', null, false);
+            $mform->hideIf($script->file_name . '_params', 'script', 'neq', $script->file_name);
         }
     }
 
@@ -44,20 +51,10 @@ class lsucli_form extends \moodleform
      * @param CLIScript $script
      * @return HTML_QuickForm_element[]
      */
-    private function add_option_elements($script)
+    private function create_option_elements($script)
     {
         $mform = $this->_form;
         $group = [];
-        $group = [...$group, ...$this->labelwrap(
-            'Custom Parameters 1', 
-            $mform->createElement(
-                'text', 
-                $script->file_name . "_custom_pre", 
-                null,
-                ['title' => 'Arbitrary text to go before all other parameters.']
-            )
-        )];
-        $mform->setType($script->file_name . '_custom_pre', PARAM_TEXT);
         /** @var CLIOption $option */
         foreach ($script->get_options() as $option) {
             $unique = $script->file_name . '_' . $option->longname;
@@ -85,17 +82,10 @@ class lsucli_form extends \moodleform
                     $mform->setType($unique, PARAM_TEXT);
                 }
             }
+            if ($option->required == true) {
+                $mform->addRule($unique, get_string('err_required', 'local_lsucli'), 'required', null, 'server');
+            }
         }
-        $group = [...$group, ...$this->labelwrap(
-            'Custom Parameters 2', 
-            $mform->createElement(
-                'text', 
-                $script->file_name . "_custom_post", 
-                null,
-                ['title' => 'Arbitrary text to go after all other parameters.']
-            )
-        )];
-        $mform->setType($script->file_name . '_custom_post', PARAM_TEXT);
         return $group;
     }
 

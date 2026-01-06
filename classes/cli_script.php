@@ -32,11 +32,18 @@ class CLIScript {
     public string $example_text;
 
     public function __construct($file_name) {
-        global $CFG;
+        global $CFG, $DB;
         $this->file_path = "$CFG->dirroot/admin/cli/$file_name";
         $file_name = substr($file_name, 0, -4);
         $this->file_name = ltrim(strtolower(preg_replace('/([A-Z])/', '_$1', $file_name)), '_');
-        $this->grep_help_text();
+
+        // Check for custom help text in the database first.
+        $custom = $DB->get_record('local_lsucli_helptext', ['scriptname' => $this->file_name]);
+        if ($custom && !empty($custom->helptext)) {
+            $this->help_text = $custom->helptext;
+        } else {
+            $this->grep_help_text();
+        }
         $this->parse_help_text();
     }
 

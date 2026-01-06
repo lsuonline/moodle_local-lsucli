@@ -41,70 +41,97 @@ class lsucli_form extends \moodleform
             $mform->addGroup($group, $script->file_name . "_help", 'Documentation', null, false);
             $mform->hideIf($script->file_name . '_help', 'script', 'neq', $script->file_name);
 
-            $group = $this->create_option_elements($script);
-            $mform->addGroup($group, $script->file_name . '_params', 'Options', null, false);
-            $mform->hideIf($script->file_name . '_params', 'script', 'neq', $script->file_name);
+            // Add header for commandline parameters.
+            $header_group = [$mform->createElement('static', null, null, '<h4>Commandline Parameters</h4>')];
+            $mform->addGroup($header_group, $script->file_name . "_params_header", '', null, false);
+            $mform->hideIf($script->file_name . '_params_header', 'script', 'neq', $script->file_name);
+
+            // Add each option as its own group for proper layout.
+            $this->add_option_elements($script);
         }
     }
 
     /**
+     * Adds option elements for a script, each option as its own group row.
      * @param CLIScript $script
-     * @return HTML_QuickForm_element[]
+     * @return void
      */
-    private function create_option_elements($script)
+    private function add_option_elements($script)
     {
         $mform = $this->_form;
-        $group = [];
         /** @var CLIOption $option */
         foreach ($script->get_options() as $option) {
             $unique = $script->file_name . '_' . $option->longname;
-            if ($option->type == OptionType::BOOL) {
-                $group[] = &$mform->createElement(
-                    'checkbox',
-                    $unique,
-                    $option->longname,
+            $enablekey = $unique . '_enabled';
+            $groupname = $unique . '_group';
+            $group = [];
+
+            // Open wrapper div.
+            $group[] = $mform->createElement('html', '<div class="lsucli-option-row">');
+
+            // Label spans full row for clickability - checkbox label includes the option name.
+            if ($option->type == OptionType::FLAG) {
+                // FLAG: Just a checkbox - presence means enabled.
+                $group[] = $mform->createElement(
+                    'advcheckbox',
+                    $enablekey,
                     '',
-                    ['title' => $option->description],
+                    '<span class="lsucli-label-text">' . htmlspecialchars($option->longname) . '</span>',
+                    ['title' => $option->description, 'class' => 'lsucli-checkbox'],
                 );
+            } else if ($option->type == OptionType::BOOL) {
+                // BOOL: Checkbox to enable + toggle switch for true/false.
+                $group[] = $mform->createElement(
+                    'advcheckbox',
+                    $enablekey,
+                    '',
+                    '<span class="lsucli-label-text">' . htmlspecialchars($option->longname) . '</span>',
+                    ['title' => $option->description, 'class' => 'lsucli-checkbox'],
+                );
+                $group[] = $mform->createElement('html', '<div class="lsucli-control-wrap">');
+                $group[] = $mform->createElement(
+                    'advcheckbox',
+                    $unique,
+                    '',
+                    '',
+                    ['class' => 'lsucli-toggle-switch'],
+                    ['false', 'true']
+                );
+                $group[] = $mform->createElement('html', '</div>');
             } else {
-                $group = [...$group,...$this->labelwrap(
-                    $option->longname, 
-                    $mform->createElement(
-                        'text', 
-                        $unique,
-                        null,
-                        ['title' => $option->description],
-                    ),
-                )];
+                // STRING or NUMBER: Checkbox to enable + text input for value.
+                $group[] = $mform->createElement(
+                    'advcheckbox',
+                    $enablekey,
+                    '',
+                    '<span class="lsucli-label-text">' . htmlspecialchars($option->longname) . '</span>',
+                    ['title' => $option->description, 'class' => 'lsucli-checkbox'],
+                );
+                $group[] = $mform->createElement('html', '<div class="lsucli-control-wrap">');
+                $group[] = $mform->createElement(
+                    'text',
+                    $unique,
+                    null,
+                    ['title' => $option->description, 'class' => 'lsucli-option-value'],
+                );
+                $group[] = $mform->createElement('html', '</div>');
                 if ($option->type == OptionType::NUMBER) {
                     $mform->setType($unique, PARAM_INT);
                 } else {
                     $mform->setType($unique, PARAM_TEXT);
                 }
             }
+
+            // Close wrapper div.
+            $group[] = $mform->createElement('html', '</div>');
+
+            $mform->addGroup($group, $groupname, '', '', false);
+            $mform->hideIf($groupname, 'script', 'neq', $script->file_name);
+
             if ($option->required == true) {
-                $mform->addRule($unique, get_string('err_required', 'local_lsucli'), 'required', null, 'server');
+                $mform->addRule($enablekey, get_string('err_required', 'local_lsucli'), 'required', null, 'server');
             }
         }
-        return $group;
-    }
-
-    private function labelwrap($pretext, $child, $posttext = '') {
-        $elements = [];
-        $elements[] = &$this->_form->createElement(
-            'static',
-            null,
-            null,
-            '<label data-toggle="tooltip">' . $pretext,
-        );
-        $elements[] = $child;
-        $elements[] = &$this->_form->createElement(
-            'static',
-            null,
-            null,
-            $posttext . '</label>',
-        );
-        return $elements;
     }
 
     public function reset() {
@@ -116,27 +143,42 @@ class lsucli_form extends \moodleform
         $data = $this->get_data();
         $script = $this->cliscripts[$data->script];
         $command = [
-            "php", 
+            "php",
             $script->file_path,
             $data->{$data->script . '_custom_pre'} ?? null
         ];
         foreach ($script->get_options() as $option) {
-            $key = $data->script . '_' . $option->longname;
-            $value = $data->{$key} ?? null;
-            if ($value == null)
-                continue;
-            if ($option->type == OptionType::BOOL && $value == 1) {
-                $command[] = "--$option->longname";
-                continue;
-            }
-            if ($option->type == OptionType::STRING) {
-                $command[] = "--$option->longname=" . escapeshellarg($value);
+            $unique = $data->script . '_' . $option->longname;
+            $enablekey = $unique . '_enabled';
+
+            if ($option->type == OptionType::FLAG) {
+                // FLAG: Just check if enabled.
+                $enabled = $data->{$enablekey} ?? 0;
+                if ($enabled) {
+                    $command[] = "--$option->longname";
+                }
+            } else if ($option->type == OptionType::BOOL) {
+                // BOOL: Check if enabled, then get true/false value.
+                $enabled = $data->{$enablekey} ?? 0;
+                if ($enabled) {
+                    $value = $data->{$unique} ?? 'false';
+                    $command[] = "--$option->longname=$value";
+                }
             } else {
-                $command[] = "--$option->longname=$value";
+                // STRING or NUMBER: Check if enabled, then get value.
+                $enabled = $data->{$enablekey} ?? 0;
+                $value = $data->{$unique} ?? null;
+                if ($enabled && $value !== null && $value !== '') {
+                    if ($option->type == OptionType::STRING) {
+                        $command[] = "--$option->longname=" . escapeshellarg($value);
+                    } else {
+                        $command[] = "--$option->longname=$value";
+                    }
+                }
             }
         }
         $command[] = $data->{$data->script . '_custom_post'} ?? null;
-        $command = array_filter( $command, function($v) {
+        $command = array_filter($command, function($v) {
             return $v !== null;
         });
         $command = implode(' ', $command);

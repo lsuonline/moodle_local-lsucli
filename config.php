@@ -38,7 +38,6 @@ $form = new helptext_form(null, ['scripts' => $scripts]);
 if ($form->is_cancelled()) {
     redirect(new moodle_url('/local/lsucli/index.php'));
 } else if ($data = $form->get_data()) {
-    global $DB;
     foreach ($scripts as $scriptname => $script) {
         $fieldname = 'helptext_' . $scriptname;
         $helptext = $data->$fieldname ?? '';
@@ -73,7 +72,6 @@ foreach ($scripts as $scriptname => $script) {
 $form->set_data($formdata);
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('confighelptext', 'local_lsucli'));
 $form->display();
 echo $OUTPUT->footer();
 

@@ -5,9 +5,10 @@ defined('MOODLE_INTERNAL') || die();
 
 
 enum OptionType: int {
-    case BOOL = 1;
+    case FLAG = 1;
     case STRING = 2;
     case NUMBER = 3;
+    case BOOL = 4;
 }
 
 class CLIOption {
@@ -43,7 +44,7 @@ class CLIOption {
             $shortname = null;
             $longname = null;
             $description = '';
-            $type = OptionType::BOOL;
+            $type = OptionType::FLAG;
 
             $word = array_shift($words);
             if (preg_match('/^-\S,?$/', $word)) {

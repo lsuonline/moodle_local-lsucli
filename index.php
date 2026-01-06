@@ -28,6 +28,7 @@ if ($data = $mform->get_data()) {
 }
 
 $mform->display();
+echo '<div id="command-preview" class="lsucli-command-preview">Command Preview: </div>';
 echo $OUTPUT->footer();
 ?>
 <script>
@@ -39,4 +40,50 @@ echo $OUTPUT->footer();
         label.setAttribute('title', e.getAttribute('title'));
         label.setAttribute('data-toggle', 'tooltip');
     });
+
+    // Command preview functionality.
+    function updateCommandPreview() {
+        const form = document.querySelector('form.mform');
+        if (!form) return;
+
+        const scriptSelect = form.querySelector('[name="script"]');
+        if (!scriptSelect) return;
+
+        const script = scriptSelect.value;
+        let command = 'php admin/cli/' + script;
+
+        // Find all enabled options for the selected script.
+        const enabledCheckboxes = form.querySelectorAll('[name^="' + script + '_"][name$="_enabled"]:checked');
+        enabledCheckboxes.forEach(checkbox => {
+            const optionName = checkbox.name.replace(script + '_', '').replace('_enabled', '');
+            const valueInput = form.querySelector('[name="' + script + '_' + optionName + '"]');
+
+            if (valueInput) {
+                if (valueInput.type === 'checkbox') {
+                    // BOOL type - check if it's the toggle (not the enable checkbox).
+                    if (!valueInput.name.endsWith('_enabled')) {
+                        const val = valueInput.checked ? 'true' : 'false';
+                        command += ' --' + optionName + '=' + val;
+                    } else {
+                        // FLAG type - just the option name.
+                        command += ' --' + optionName;
+                    }
+                } else if (valueInput.type === 'text' && valueInput.value) {
+                    command += ' --' + optionName + '=' + valueInput.value;
+                }
+            } else {
+                // FLAG type - no value input, just the checkbox.
+                command += ' --' + optionName;
+            }
+        });
+
+        document.getElementById('command-preview').textContent = 'Command Preview: ' + command;
+    }
+
+    // Update on any form change.
+    document.querySelector('form.mform')?.addEventListener('change', updateCommandPreview);
+    document.querySelector('form.mform')?.addEventListener('input', updateCommandPreview);
+
+    // Initial update.
+    updateCommandPreview();
 </script>

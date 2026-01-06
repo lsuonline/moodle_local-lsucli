@@ -137,7 +137,11 @@ class CLIScript {
         return $this->options;
     }
 
-    /** @var array<array<array>> An array of corrected values for poor documentation in the script files. Structure is [file_name][longname][property] = <NEW_VALUE> */
+    /**
+     * An array of corrected values for poor documentation in the script files.
+     * Structure is [file_name][longname][property] = <NEW_VALUE>
+     * @var array<string, array<string, array<string, mixed>>>
+     */
     const SPECIAL_CASE_PROPS = [
         'adhoc_task' => [
             'classname' => [

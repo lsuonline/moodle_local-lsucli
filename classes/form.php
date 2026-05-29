@@ -127,10 +127,6 @@ class lsucli_form extends \moodleform
 
             $mform->addGroup($group, $groupname, '', '', false);
             $mform->hideIf($groupname, 'script', 'neq', $script->file_name);
-
-            if ($option->required == true) {
-                $mform->addRule($enablekey, get_string('err_required', 'local_lsucli'), 'required', null, 'server');
-            }
         }
     }
 

@@ -48,7 +48,7 @@ if ($hassiteconfig) {
             'local_lsucli/maxoutputlines',
             get_string('maxoutputlines', 'local_lsucli'),
             get_string('maxoutputlines_desc', 'local_lsucli'),
-            500,
+            5000,
             PARAM_INT
         ));
     }

@@ -22,50 +22,64 @@ if ($data = $mform->get_data()) {
         $output[] = get_string('outputtruncated', 'local_lsucli', $maxlines);
     }
 
-    // Store the output from the last run.
+    // Stash everything for inline rendering on the next page load. The notification is
+    // rendered inline (between the live preview and the output) rather than as a top
+    // banner, so the user lands at the iteration zone instead of having to scroll.
+    if ($resultcode === 0) {
+        $message = get_string('runsuccess', 'local_lsucli', $data->script);
+        $messagetype = \core\output\notification::NOTIFY_SUCCESS;
+    } else {
+        $message = get_string('runfailed', 'local_lsucli', (object) [
+            'script' => $data->script,
+            'code' => $resultcode ?? -1,
+        ]);
+        $messagetype = \core\output\notification::NOTIFY_ERROR;
+    }
+
     $SESSION->local_lsucli_lastrun = (object) [
         'command' => $command,
         'exitcode' => $resultcode,
         'output' => $output,
+        'message' => $message,
+        'messagetype' => $messagetype,
     ];
 
-    if ($resultcode === 0) {
-        redirect(
-            $PAGE->url,
-            get_string('runsuccess', 'local_lsucli', $data->script),
-            null,
-            \core\output\notification::NOTIFY_SUCCESS
-        );
-    } else {
-        redirect(
-            $PAGE->url,
-            get_string('runfailed', 'local_lsucli', (object) [
-                'script' => $data->script,
-                'code' => $resultcode ?? -1,
-            ]),
-            null,
-            \core\output\notification::NOTIFY_ERROR
-        );
-    }
+    // Anchor the redirect so the browser scrolls to the iteration zone on reload.
+    $returnurl = clone $PAGE->url;
+    $returnurl->set_anchor('runresult');
+    redirect($returnurl);
 }
 
 echo $OUTPUT->header();
-
 echo $OUTPUT->heading(get_string('lsucli', 'local_lsucli'));
 
-// Render the stored output
+$mform->display();
+
+// Pull the stashed last-run result, if any, and render the iteration zone below the form:
+// live preview (merged with executed command) -> notification -> output.
+$lastrun = null;
 if (!empty($SESSION->local_lsucli_lastrun)) {
     $lastrun = $SESSION->local_lsucli_lastrun;
     unset($SESSION->local_lsucli_lastrun);
-
-    echo '<pre>';
-    echo 'EXECUTING: ' . s($lastrun->command) . "\n";
-    echo s(implode("\n", $lastrun->output));
-    echo '</pre>';
 }
 
-$mform->display();
-echo '<div id="command-preview" class="lsucli-command-preview">Command Preview: </div>';
+// Live preview + executed-command share this div. The JS overwrites the EXECUTING text
+// with the live preview as soon as the user changes any form field, signalling staleness.
+echo '<div id="command-preview" class="lsucli-command-preview">';
+if ($lastrun !== null) {
+    echo 'EXECUTING: ' . s($lastrun->command);
+} else {
+    echo 'Command Preview: ';
+}
+echo '</div>';
+
+if ($lastrun !== null) {
+    echo '<div id="runresult">';
+    echo $OUTPUT->notification($lastrun->message, $lastrun->messagetype);
+    echo '<pre class="lsucli-output">' . s(implode("\n", $lastrun->output)) . '</pre>';
+    echo '</div>';
+}
+
 echo $OUTPUT->footer();
 ?>
 <script>
@@ -117,10 +131,15 @@ echo $OUTPUT->footer();
         document.getElementById('command-preview').textContent = 'Command Preview: ' + command;
     }
 
-    // Update on any form change.
+    // Update on any form change. This naturally overwrites any server-rendered
+    // "EXECUTING: ..." text from a previous run, signalling that the output is stale.
     document.querySelector('form.mform')?.addEventListener('change', updateCommandPreview);
     document.querySelector('form.mform')?.addEventListener('input', updateCommandPreview);
 
-    // Initial update.
-    updateCommandPreview();
+    // Initial update on a fresh page load — but skip if the server already rendered
+    // an EXECUTING result, so the executed command stays visible until the user retouches the form.
+    const previewDiv = document.getElementById('command-preview');
+    if (previewDiv && !previewDiv.textContent.startsWith('EXECUTING:')) {
+        updateCommandPreview();
+    }
 </script>

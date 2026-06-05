@@ -5,11 +5,7 @@ require_once("$CFG->libdir/formslib.php");
 
 require_once(__DIR__ . '/classes/form.php');
 
-$context = context_system::instance();
-require_login();
-require_capability('moodle/site:config', $context);
-$PAGE->set_context($context);
-$PAGE->set_url('/local/lsucli/index.php');
+admin_externalpage_setup('local_lsucli_runcli');
 $PAGE->requires->css('/local/lsucli/styles.css');
 
 echo $OUTPUT->header();

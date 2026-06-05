@@ -2,24 +2,36 @@
 defined('MOODLE_INTERNAL') || die();
 
 if ($hassiteconfig) {
-    // Add main CLI runner page to Development.
     $ADMIN->add(
-        'development',
-        new admin_externalpage(
+        'localplugins',
+        new admin_category(
             'local_lsucli',
-            get_string('pluginname', 'local_lsucli'),
-            new moodle_url('/local/lsucli/index.php'),
+            get_string('lsuclifolder', 'local_lsucli')
+        )
+    );
+
+    $ADMIN->add(
+        'local_lsucli',
+        new admin_externalpage(
+            'local_lsucli_cliconfig',
+            get_string('cliconfiguration', 'local_lsucli'),
+            new moodle_url('/local/lsucli/cliconfig.php'),
             'moodle/site:config'
         )
     );
 
-    // Add config page for help text editing.
+    $settingspage = new admin_settingpage(
+        'local_lsucli_settings',
+        get_string('settings')
+    );
+    $ADMIN->add('local_lsucli', $settingspage);
+
     $ADMIN->add(
-        'development',
+        'local_lsucli',
         new admin_externalpage(
-            'local_lsucli_config',
-            get_string('confighelptext', 'local_lsucli'),
-            new moodle_url('/local/lsucli/cliconfig.php'),
+            'local_lsucli_runcli',
+            get_string('runcli', 'local_lsucli'),
+            new moodle_url('/local/lsucli/index.php'),
             'moodle/site:config'
         )
     );

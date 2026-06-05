@@ -23,13 +23,7 @@ require_once(__DIR__ . '/classes/form/helptext_form.php');
 use local_lsucli\CLIScript;
 use local_lsucli\form\helptext_form;
 
-require_login();
-require_capability('moodle/site:config', context_system::instance());
-
-$PAGE->set_url(new moodle_url('/local/lsucli/cliconfig.php'));
-$PAGE->set_context(context_system::instance());
-$PAGE->set_title(get_string('confighelptext', 'local_lsucli'));
-$PAGE->set_heading(get_string('confighelptext', 'local_lsucli'));
+admin_externalpage_setup('local_lsucli_cliconfig');
 
 $scripts = CLIScript::gen_scripts();
 

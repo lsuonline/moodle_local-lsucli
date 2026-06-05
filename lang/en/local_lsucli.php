@@ -9,3 +9,6 @@ $string['err_required'] = 'This field is required.';
 $string['confighelptext'] = 'Configure CLI Help Text';
 $string['helptext'] = 'Help text';
 $string['changessaved'] = 'Changes saved successfully.';
+$string['lsuclifolder'] = 'LSUCLI';
+$string['cliconfiguration'] = 'CLI configuration';
+$string['runcli'] = 'Run CLI';

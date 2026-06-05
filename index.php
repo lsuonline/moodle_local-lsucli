@@ -19,6 +19,14 @@ if ($data = $mform->get_data()) {
     $command = $mform->build_cmd();
     echo "EXECUTING: $command";
     exec($command, $output);
+
+    // Limit how much script output we render based on admin settings.
+    $maxlines = (int) get_config('local_lsucli', 'maxoutputlines');
+    if ($maxlines > 0 && count($output) > $maxlines) {
+        $output = array_slice($output, 0, $maxlines);
+        $output[] = get_string('outputtruncated', 'local_lsucli', $maxlines);
+    }
+
     echo implode("\n", $output);
     echo "</pre>";
     $mform->reset();

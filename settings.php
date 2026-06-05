@@ -24,6 +24,35 @@ if ($hassiteconfig) {
         'local_lsucli_settings',
         get_string('settings')
     );
+
+    // Only true when Moodle needs the actual setting controls.
+    if ($ADMIN->fulltree) {
+        $settingspage->add(new admin_setting_heading(
+            'local_lsucli/overview_heading',
+            get_string('settings_overview_heading', 'local_lsucli'),
+            get_string('settings_overview_desc', 'local_lsucli')
+        ));
+
+        $pathtophp = !empty($CFG->pathtophp)
+            ? '<code>' . s($CFG->pathtophp) . '</code>'
+            : '<em>' . get_string('settings_phpbinary_unset', 'local_lsucli') . '</em>';
+        // Show the PHP binary we're using.
+        $settingspage->add(new admin_setting_heading(
+            'local_lsucli/phpbinary_heading',
+            get_string('settings_phpbinary_heading', 'local_lsucli'),
+            get_string('settings_phpbinary_desc', 'local_lsucli', (object) ['pathtophp' => $pathtophp])
+        ));
+
+        // Limit how much script output we render.
+        $settingspage->add(new admin_setting_configtext(
+            'local_lsucli/maxoutputlines',
+            get_string('maxoutputlines', 'local_lsucli'),
+            get_string('maxoutputlines_desc', 'local_lsucli'),
+            500,
+            PARAM_INT
+        ));
+    }
+
     $ADMIN->add('local_lsucli', $settingspage);
 
     $ADMIN->add(

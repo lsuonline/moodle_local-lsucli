@@ -8,17 +8,12 @@ require_once(__DIR__ . '/classes/form.php');
 admin_externalpage_setup('local_lsucli_runcli');
 $PAGE->requires->css('/local/lsucli/styles.css');
 
-echo $OUTPUT->header();
-
-echo $OUTPUT->heading(get_string('lsucli', 'local_lsucli'));
-
 $mform = new lsucli_form();
 
 if ($data = $mform->get_data()) {
-    echo "<pre>";
     $command = $mform->build_cmd();
-    echo "EXECUTING: $command";
-    exec($command, $output);
+    $resultcode = null;
+    exec($command, $output, $resultcode);
 
     // Limit how much script output we render based on admin settings.
     $maxlines = (int) get_config('local_lsucli', 'maxoutputlines');
@@ -27,9 +22,46 @@ if ($data = $mform->get_data()) {
         $output[] = get_string('outputtruncated', 'local_lsucli', $maxlines);
     }
 
-    echo implode("\n", $output);
-    echo "</pre>";
-    $mform->reset();
+    // Store the output from the last run.
+    $SESSION->local_lsucli_lastrun = (object) [
+        'command' => $command,
+        'exitcode' => $resultcode,
+        'output' => $output,
+    ];
+
+    if ($resultcode === 0) {
+        redirect(
+            $PAGE->url,
+            get_string('runsuccess', 'local_lsucli', $data->script),
+            null,
+            \core\output\notification::NOTIFY_SUCCESS
+        );
+    } else {
+        redirect(
+            $PAGE->url,
+            get_string('runfailed', 'local_lsucli', (object) [
+                'script' => $data->script,
+                'code' => $resultcode ?? -1,
+            ]),
+            null,
+            \core\output\notification::NOTIFY_ERROR
+        );
+    }
+}
+
+echo $OUTPUT->header();
+
+echo $OUTPUT->heading(get_string('lsucli', 'local_lsucli'));
+
+// Render the stored output
+if (!empty($SESSION->local_lsucli_lastrun)) {
+    $lastrun = $SESSION->local_lsucli_lastrun;
+    unset($SESSION->local_lsucli_lastrun);
+
+    echo '<pre>';
+    echo 'EXECUTING: ' . s($lastrun->command) . "\n";
+    echo s(implode("\n", $lastrun->output));
+    echo '</pre>';
 }
 
 $mform->display();

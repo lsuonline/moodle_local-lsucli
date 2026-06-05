@@ -20,3 +20,5 @@ $string['settings_phpbinary_unset'] = 'not set';
 $string['maxoutputlines'] = 'Maximum output lines';
 $string['maxoutputlines_desc'] = 'Maximum number of lines of script output to display on the <em>Run CLI</em> page after a script finishes. Set to 0 for no limit.';
 $string['outputtruncated'] = 'Output truncated to {$a} lines (configurable in plugin settings).';
+$string['runsuccess'] = 'Successfully ran {$a}.';
+$string['runfailed'] = 'Script {$a->script} failed (exit code {$a->code}).';

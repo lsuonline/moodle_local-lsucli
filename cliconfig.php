@@ -26,7 +26,7 @@ use local_lsucli\form\helptext_form;
 require_login();
 require_capability('moodle/site:config', context_system::instance());
 
-$PAGE->set_url(new moodle_url('/local/lsucli/config.php'));
+$PAGE->set_url(new moodle_url('/local/lsucli/cliconfig.php'));
 $PAGE->set_context(context_system::instance());
 $PAGE->set_title(get_string('confighelptext', 'local_lsucli'));
 $PAGE->set_heading(get_string('confighelptext', 'local_lsucli'));
@@ -56,14 +56,13 @@ if ($form->is_cancelled()) {
         }
     }
     redirect(
-        new moodle_url('/local/lsucli/config.php'),
+        new moodle_url('/local/lsucli/cliconfig.php'),
         get_string('changessaved', 'local_lsucli'),
         null,
         \core\output\notification::NOTIFY_SUCCESS
     );
 }
 
-// Load existing data.
 $formdata = [];
 foreach ($scripts as $scriptname => $script) {
     $record = $DB->get_record('local_lsucli_helptext', ['scriptname' => $scriptname]);
@@ -74,4 +73,3 @@ $form->set_data($formdata);
 echo $OUTPUT->header();
 $form->display();
 echo $OUTPUT->footer();
-

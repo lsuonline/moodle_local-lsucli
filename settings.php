@@ -19,7 +19,7 @@ if ($hassiteconfig) {
         new admin_externalpage(
             'local_lsucli_config',
             get_string('confighelptext', 'local_lsucli'),
-            new moodle_url('/local/lsucli/config.php'),
+            new moodle_url('/local/lsucli/cliconfig.php'),
             'moodle/site:config'
         )
     );

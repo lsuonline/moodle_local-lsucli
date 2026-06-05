@@ -7,6 +7,7 @@ require_once(__DIR__ . '/classes/form.php');
 
 $context = context_system::instance();
 require_login();
+require_capability('moodle/site:config', $context);
 $PAGE->set_context($context);
 $PAGE->set_url('/local/lsucli/index.php');
 $PAGE->requires->css('/local/lsucli/styles.css');

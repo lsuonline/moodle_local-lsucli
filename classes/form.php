@@ -135,11 +135,12 @@ class lsucli_form extends \moodleform
     }
 
     public function build_cmd() {
+        global $CFG;
         setlocale(LC_CTYPE, "en_US.UTF-8");
         $data = $this->get_data();
         $script = $this->cliscripts[$data->script];
         $command = [
-            "php",
+            $CFG->pathtophp,
             $script->file_path,
             $data->{$data->script . '_custom_pre'} ?? null
         ];

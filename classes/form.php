@@ -16,6 +16,10 @@ class lsucli_form extends \moodleform
         global $CFG;
         $this->cliscripts = CLIScript::gen_enabled_scripts();
         $mform = $this->_form;
+        $nonce = (string) ($this->_customdata['nonce'] ?? '');
+        $mform->addElement('hidden', 'lsucli_nonce', $nonce);
+        $mform->setType('lsucli_nonce', PARAM_ALPHANUM);
+
         $scripts = [];
         foreach ($this->cliscripts as $script) {
             $scripts[$script->file_name] = $script->file_name;

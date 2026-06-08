@@ -28,3 +28,4 @@ $string['scriptdisabled'] = 'The script "{$a}" is not enabled. An administrator 
 $string['back_to_lsucli'] = 'Back to LSU CLI';
 $string['run_again'] = 'Run again';
 $string['executedcommand'] = 'Executed command';
+$string['err_replay'] = 'This run has already been processed. Use "Run again" or resubmit the form to execute it again.';

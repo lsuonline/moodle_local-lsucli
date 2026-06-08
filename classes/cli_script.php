@@ -211,7 +211,11 @@ class CLIScript {
         'build_theme_css' => [
             'themes' => [
                 'type' => OptionType::STRING,
-            ]
+            ],
+            // Help text lies, the script accepts `--direction=ltr|rtl`.
+            'direction' => [
+                'type' => OptionType::STRING,
+            ],
         ],
         'checks' => [
             'filter' => [
@@ -241,9 +245,24 @@ class CLIScript {
                 'type' => OptionType::STRING,
             ],
         ],
+        'maintenance' => [
+            // `MINUTES` isn't in the parser's NUMBER_TEXTS whitelist, so it
+            // falls through to STRING; the script casts to int either way.
+            'enablelater' => [
+                'type' => OptionType::NUMBER,
+            ],
+        ],
         'purge_caches' => [
             'courses' => [
                 'type' => OptionType::STRING,
+            ],
+        ],
+        'upgrade' => [
+            'maintenance' => [
+                'type' => OptionType::BOOL,
+            ],
+            'non-interactive' => [
+                'default_enabled' => true,
             ],
         ],
     ];

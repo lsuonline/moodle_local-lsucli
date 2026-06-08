@@ -10,12 +10,14 @@ use local_lsucli\CLIScript;
 admin_externalpage_setup('local_lsucli_runcli');
 $PAGE->requires->css('/local/lsucli/styles.css');
 
+$action = optional_param('action', '', PARAM_ALPHA);
+
 $mform = new lsucli_form();
 
 if ($data = $mform->get_data()) {
     if (!CLIScript::is_enabled($data->script)) {
         redirect(
-            $PAGE->url,
+            new moodle_url('/local/lsucli/index.php'),
             get_string('scriptdisabled', 'local_lsucli', $data->script),
             null,
             \core\output\notification::NOTIFY_ERROR
@@ -32,9 +34,6 @@ if ($data = $mform->get_data()) {
         $output[] = get_string('outputtruncated', 'local_lsucli', $maxlines);
     }
 
-    // Stash everything for inline rendering on the next page load. The notification is
-    // rendered inline (between the live preview and the output) rather than as a top
-    // banner, so the user lands at the iteration zone instead of having to scroll.
     if ($resultcode === 0) {
         $message = get_string('runsuccess', 'local_lsucli', $data->script);
         $messagetype = \core\output\notification::NOTIFY_SUCCESS;
@@ -54,41 +53,49 @@ if ($data = $mform->get_data()) {
         'messagetype' => $messagetype,
     ];
 
-    // Anchor the redirect so the browser scrolls to the iteration zone on reload.
-    $returnurl = clone $PAGE->url;
-    $returnurl->set_anchor('runresult');
-    redirect($returnurl);
+    $SESSION->local_lsucli_lastformdata = $data;
+
+    redirect(new moodle_url('/local/lsucli/index.php', ['action' => 'showresult']));
 }
+
+if ($action === 'showresult' && !empty($SESSION->local_lsucli_lastrun)) {
+    $lastrun = $SESSION->local_lsucli_lastrun;
+
+    $backurl = new moodle_url('/local/lsucli/index.php');
+    $rerunurl = new moodle_url('/local/lsucli/index.php', ['action' => 'runagain']);
+
+    // Render the action row twice
+    $actionrow = '<div class="lsucli-result-actions">'
+        . $OUTPUT->single_button($backurl, get_string('back_to_lsucli', 'local_lsucli'), 'get')
+        . $OUTPUT->single_button($rerunurl, get_string('run_again', 'local_lsucli'), 'get')
+        . '</div>';
+
+    echo $OUTPUT->header();
+    echo $OUTPUT->heading(get_string('lsucli', 'local_lsucli'));
+
+    echo $OUTPUT->notification($lastrun->message, $lastrun->messagetype);
+    echo $actionrow;
+    echo '<div class="lsucli-command-preview">'
+        . s(get_string('executedcommand', 'local_lsucli')) . ': ' . s($lastrun->command)
+        . '</div>';
+    echo '<pre class="lsucli-output">' . s(implode("\n", $lastrun->output)) . '</pre>';
+    echo $actionrow;
+
+    echo $OUTPUT->footer();
+    exit;
+}
+
+if ($action === 'runagain' && !empty($SESSION->local_lsucli_lastformdata)) {
+    $mform->set_data($SESSION->local_lsucli_lastformdata);
+}
+unset($SESSION->local_lsucli_lastrun);
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('lsucli', 'local_lsucli'));
 
 $mform->display();
 
-// Pull the stashed last-run result, if any, and render the iteration zone below the form:
-// live preview (merged with executed command) -> notification -> output.
-$lastrun = null;
-if (!empty($SESSION->local_lsucli_lastrun)) {
-    $lastrun = $SESSION->local_lsucli_lastrun;
-    unset($SESSION->local_lsucli_lastrun);
-}
-
-// Live preview + executed-command share this div. The JS overwrites the EXECUTING text
-// with the live preview as soon as the user changes any form field, signalling staleness.
-echo '<div id="command-preview" class="lsucli-command-preview">';
-if ($lastrun !== null) {
-    echo 'EXECUTING: ' . s($lastrun->command);
-} else {
-    echo 'Command Preview: ';
-}
-echo '</div>';
-
-if ($lastrun !== null) {
-    echo '<div id="runresult">';
-    echo $OUTPUT->notification($lastrun->message, $lastrun->messagetype);
-    echo '<pre class="lsucli-output">' . s(implode("\n", $lastrun->output)) . '</pre>';
-    echo '</div>';
-}
+echo '<div id="command-preview" class="lsucli-command-preview">Command Preview: </div>';
 
 echo $OUTPUT->footer();
 ?>
@@ -102,7 +109,9 @@ echo $OUTPUT->footer();
         label.setAttribute('data-toggle', 'tooltip');
     });
 
-    // Command preview functionality.
+    /*
+    * Update the command preview as the form changes.
+    */
     function updateCommandPreview() {
         const form = document.querySelector('form.mform');
         if (!form) return;
@@ -121,35 +130,30 @@ echo $OUTPUT->footer();
 
             if (valueInput) {
                 if (valueInput.type === 'checkbox') {
-                    // BOOL type - check if it's the toggle (not the enable checkbox).
                     if (!valueInput.name.endsWith('_enabled')) {
                         const val = valueInput.checked ? 'true' : 'false';
                         command += ' --' + optionName + '=' + val;
                     } else {
-                        // FLAG type - just the option name.
                         command += ' --' + optionName;
                     }
                 } else if (valueInput.type === 'text' && valueInput.value) {
                     command += ' --' + optionName + '=' + valueInput.value;
                 }
             } else {
-                // FLAG type - no value input, just the checkbox.
                 command += ' --' + optionName;
             }
         });
 
-        document.getElementById('command-preview').textContent = 'Command Preview: ' + command;
+        const previewDiv = document.getElementById('command-preview');
+        if (previewDiv) {
+            previewDiv.textContent = 'Command Preview: ' + command;
+        }
     }
 
-    // Update on any form change. This naturally overwrites any server-rendered
-    // "EXECUTING: ..." text from a previous run, signalling that the output is stale.
     document.querySelector('form.mform')?.addEventListener('change', updateCommandPreview);
     document.querySelector('form.mform')?.addEventListener('input', updateCommandPreview);
 
-    // Initial update on a fresh page load — but skip if the server already rendered
-    // an EXECUTING result, so the executed command stays visible until the user retouches the form.
-    const previewDiv = document.getElementById('command-preview');
-    if (previewDiv && !previewDiv.textContent.startsWith('EXECUTING:')) {
+    if (document.getElementById('command-preview')) {
         updateCommandPreview();
     }
 </script>

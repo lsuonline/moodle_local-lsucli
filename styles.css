@@ -143,9 +143,14 @@
     word-break: break-all;
 }
 
-/* Wrapper around the inline notification + output (anchor target for the post-submit redirect) */
-.path-local-lsucli #runresult {
-    margin-top: 1rem;
+.path-local-lsucli .lsucli-result-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin: 1rem 0;
+}
+
+.path-local-lsucli .lsucli-result-actions form {
+    margin: 0;
 }
 
 /* Output of the last run — capped height with scroll so chatty scripts don't push the form away. */

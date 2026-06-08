@@ -14,7 +14,7 @@ class lsucli_form extends \moodleform
     public function definition()
     {
         global $CFG;
-        $this->cliscripts = CLIScript::gen_scripts();
+        $this->cliscripts = CLIScript::gen_enabled_scripts();
         $mform = $this->_form;
         $scripts = [];
         foreach ($this->cliscripts as $script) {

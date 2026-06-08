@@ -34,8 +34,7 @@ class CLIScript {
     public function __construct($file_name) {
         global $CFG, $DB;
         $this->file_path = "$CFG->dirroot/admin/cli/$file_name";
-        $file_name = substr($file_name, 0, -4);
-        $this->file_name = ltrim(strtolower(preg_replace('/([A-Z])/', '_$1', $file_name)), '_');
+        $this->file_name = self::normalize_name($file_name);
 
         // Check for custom help text in the database first.
         $custom = $DB->get_record('local_lsucli_helptext', ['scriptname' => $this->file_name]);
@@ -120,14 +119,72 @@ class CLIScript {
      * @return CLIScript[]
      */
     public static function gen_scripts(): array {
-        global $CFG;
         $results = [];
-        $scripts = array_diff(scandir($CFG->dirroot . '/admin/cli'), array('..', '.'));
-        foreach ($scripts as $script) {
+        foreach (self::list_filenames() as $script) {
             $new_script = new CLIScript($script);
             $results[$new_script->file_name] = $new_script;
         }
         return $results;
+    }
+
+    /**
+     * Returns a sorted list of .php filenames under admin/cli.
+     * @return string[]
+     */
+    public static function list_filenames(): array {
+        global $CFG;
+        $entries = scandir($CFG->dirroot . '/admin/cli');
+        if ($entries === false) {
+            return [];
+        }
+        $files = array_filter($entries, function ($f) {
+            return $f !== '.' && $f !== '..' && substr($f, -4) === '.php';
+        });
+        sort($files);
+        return array_values($files);
+    }
+
+    /**
+     * Converts a file name path to a normal 'purge_caches' style name.
+     * @return string
+     */
+    public static function normalize_name(string $file_name): string {
+        if (substr($file_name, -4) === '.php') {
+            $file_name = substr($file_name, 0, -4);
+        }
+        return ltrim(strtolower(preg_replace('/([A-Z])/', '_$1', $file_name)), '_');
+    }
+
+    /**
+     * Returns all enabled cli script names
+     * @return string[]
+     */
+    public static function get_enabled_names(): array {
+        $value = get_config('local_lsucli', 'enabledscripts');
+        if ($value === false || $value === null) {
+            return array_map([self::class, 'normalize_name'], self::list_filenames());
+        }
+        if ($value === '') {
+            return [];
+        }
+        return array_values(array_filter(array_map('trim', explode(',', $value)), 'strlen'));
+    }
+
+    /**
+     * Checks if a script is enabled by the admin allowlist
+     * @return bool
+     */
+    public static function is_enabled(string $name): bool {
+        return in_array($name, self::get_enabled_names(), true);
+    }
+
+    /**
+     * Get all enabled scripts as CLIScript objects
+     * @return CLIScript[]
+     */
+    public static function gen_enabled_scripts(): array {
+        $enabled = array_flip(self::get_enabled_names());
+        return array_intersect_key(self::gen_scripts(), $enabled);
     }
 
     /**

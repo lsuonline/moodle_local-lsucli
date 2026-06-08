@@ -22,3 +22,6 @@ $string['maxoutputlines_desc'] = 'Maximum number of lines of script output to di
 $string['outputtruncated'] = 'Output truncated to {$a} lines (configurable in plugin settings).';
 $string['runsuccess'] = 'Successfully ran {$a}.';
 $string['runfailed'] = 'Script {$a->script} failed (exit code {$a->code}).';
+$string['settings_enabledscripts'] = 'Enabled scripts';
+$string['settings_enabledscripts_desc'] = 'Allowlist of CLI scripts that the <em>Run CLI</em> page is allowed to execute. Only the scripts checked here can be selected and run from the form. Uncheck destructive scripts (for example <code>delete_course.php</code> or <code>uninstall_plugins.php</code>) to keep them out of the web UI.';
+$string['scriptdisabled'] = 'The script "{$a}" is not enabled. An administrator must enable it under Site administration &rarr; Plugins &rarr; Local plugins &rarr; LSUCLI &rarr; Settings before it can be run.';

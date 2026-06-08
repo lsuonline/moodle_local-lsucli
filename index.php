@@ -5,12 +5,22 @@ require_once("$CFG->libdir/formslib.php");
 
 require_once(__DIR__ . '/classes/form.php');
 
+use local_lsucli\CLIScript;
+
 admin_externalpage_setup('local_lsucli_runcli');
 $PAGE->requires->css('/local/lsucli/styles.css');
 
 $mform = new lsucli_form();
 
 if ($data = $mform->get_data()) {
+    if (!CLIScript::is_enabled($data->script)) {
+        redirect(
+            $PAGE->url,
+            get_string('scriptdisabled', 'local_lsucli', $data->script),
+            null,
+            \core\output\notification::NOTIFY_ERROR
+        );
+    }
     $command = $mform->build_cmd();
     $resultcode = null;
     exec($command, $output, $resultcode);

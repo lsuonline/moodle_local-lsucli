@@ -51,6 +51,23 @@ if ($hassiteconfig) {
             5000,
             PARAM_INT
         ));
+
+        // Enabled scripts allowlist setting.
+        require_once(__DIR__ . '/classes/cli_script.php');
+        $scriptchoices = [];
+        $scriptdefaults = [];
+        foreach (\local_lsucli\CLIScript::list_filenames() as $file) {
+            $key = \local_lsucli\CLIScript::normalize_name($file);
+            $scriptchoices[$key] = $file;
+            $scriptdefaults[$key] = 1;
+        }
+        $settingspage->add(new admin_setting_configmulticheckbox(
+            'local_lsucli/enabledscripts',
+            get_string('settings_enabledscripts', 'local_lsucli'),
+            get_string('settings_enabledscripts_desc', 'local_lsucli'),
+            $scriptdefaults,
+            $scriptchoices
+        ));
     }
 
     $ADMIN->add('local_lsucli', $settingspage);

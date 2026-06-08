@@ -21,6 +21,8 @@ class lsucli_form extends \moodleform
             $scripts[$script->file_name] = $script->file_name;
         }
         $mform->addElement('autocomplete', 'script', 'Script to execute', $scripts);
+        // Block submission when no script is picked
+        $mform->addRule('script', get_string('err_required', 'local_lsucli'), 'required', null, 'client');
         $this->add_script_elements($this->cliscripts);
         $mform->addElement('static', null, '<command_preview />');
         $mform->addElement('submit', 'submitbutton', 'Run Task');

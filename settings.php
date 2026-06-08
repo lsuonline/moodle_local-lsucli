@@ -61,6 +61,7 @@ if ($hassiteconfig) {
         $pathtophp = !empty($CFG->pathtophp)
             ? '<code>' . s($CFG->pathtophp) . '</code>'
             : '<em>' . get_string('settings_phpbinary_unset', 'local_lsucli') . '</em>';
+
         // Show the PHP binary we're using.
         $settingspage->add(new admin_setting_heading(
             'local_lsucli/phpbinary_heading',

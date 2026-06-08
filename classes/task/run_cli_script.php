@@ -30,16 +30,19 @@ defined('MOODLE_INTERNAL') || die();
 
 class run_cli_script extends \core\task\adhoc_task {
     /**
-     * Execute the task.
+     * Executes the task to run the specified CLI script.
+     *
+     * @return void
      */
     public function execute() {
         global $CFG;
 
-        $script_name = $this->get_custom_data()->script_name;
+        $script_name = basename($this->get_custom_data()->script_name);
         $script_path = $CFG->dirroot . '/admin/cli/' . $script_name;
 
         if (file_exists($script_path)) {
-            $cmd = escapeshellarg($CFG->pathtophp) . ' ' . escapeshellarg($script_path);
+            $phpbinary = $CFG->pathtophp;
+            $cmd = escapeshellarg($phpbinary) . ' ' . escapeshellarg($script_path);
             proc_open($cmd, [], $pipes);
         }
     }

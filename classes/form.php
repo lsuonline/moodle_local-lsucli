@@ -33,12 +33,20 @@ use local_lsucli\CLIOption;
 use local_lsucli\CLIScript;
 use local_lsucli\OptionType;
 
-class lsucli_form extends \moodleform
-{
-    /** @var CLIScript[] $cliscripts */
+class lsucli_form extends \moodleform {
+
+    /**
+     * Array of enabled CLI scripts.
+     * @var CLIScript[] $cliscripts
+     */
     public $cliscripts = [];
-    public function definition()
-    {
+
+    /**
+     * Defines the form structure for the LSU CLI run script form.
+     *
+     * @return void
+     */
+    public function definition() {
         global $CFG;
         $this->cliscripts = CLIScript::gen_enabled_scripts();
         $mform = $this->_form;
@@ -60,11 +68,12 @@ class lsucli_form extends \moodleform
     }
 
     /**
-     * @param CLIScript[] $cliscripts
+     * Adds the help and parameter elements for the given CLI scripts.
+     *
+     * @param CLIScript[] $cliscripts Array of CLI scripts.
      * @return void
      */
-    private function add_script_elements($cliscripts)
-    {
+    private function add_script_elements($cliscripts) {
         $mform = $this->_form;
         foreach ($cliscripts as $script) {
             $help_text = stripslashes($script->help_text);
@@ -85,12 +94,12 @@ class lsucli_form extends \moodleform
     }
 
     /**
-     * Adds option elements for a script, each option as its own group row.
-     * @param CLIScript $script
+     * Adds form elements for each parameter of the given CLI script.
+     *
+     * @param CLIScript $script The script whose options are being added.
      * @return void
      */
-    private function add_option_elements($script)
-    {
+    private function add_option_elements($script) {
         $mform = $this->_form;
         /** @var CLIOption $option */
         foreach ($script->get_options() as $option) {
@@ -111,7 +120,7 @@ class lsucli_form extends \moodleform
                     $enablekey,
                     '',
                     '<span class="lsucli-label-text">' . htmlspecialchars($option->longname) . '</span>',
-                    ['title' => $option->description, 'class' => 'lsucli-checkbox'],
+                    ['title' => s($option->description), 'class' => 'lsucli-checkbox'],
                 );
             } else if ($option->type == OptionType::BOOL) {
 
@@ -121,7 +130,7 @@ class lsucli_form extends \moodleform
                     $enablekey,
                     '',
                     '<span class="lsucli-label-text">' . htmlspecialchars($option->longname) . '</span>',
-                    ['title' => $option->description, 'class' => 'lsucli-checkbox'],
+                    ['title' => s($option->description), 'class' => 'lsucli-checkbox'],
                 );
                 $group[] = $mform->createElement('html', '<div class="lsucli-control-wrap">');
                 $group[] = $mform->createElement(
@@ -141,14 +150,14 @@ class lsucli_form extends \moodleform
                     $enablekey,
                     '',
                     '<span class="lsucli-label-text">' . htmlspecialchars($option->longname) . '</span>',
-                    ['title' => $option->description, 'class' => 'lsucli-checkbox'],
+                    ['title' => s($option->description), 'class' => 'lsucli-checkbox'],
                 );
                 $group[] = $mform->createElement('html', '<div class="lsucli-control-wrap">');
                 $group[] = $mform->createElement(
                     'text',
                     $unique,
                     null,
-                    ['title' => $option->description, 'class' => 'lsucli-option-value'],
+                    ['title' => s($option->description), 'class' => 'lsucli-option-value'],
                 );
                 $group[] = $mform->createElement('html', '</div>');
                 if ($option->type == OptionType::NUMBER) {
@@ -170,17 +179,28 @@ class lsucli_form extends \moodleform
         }
     }
 
+    /**
+     * Resets the form submission data.
+     *
+     * @return void
+     */
     public function reset() {
         $this->_form->updateSubmission(null, null);
     }
 
+    /**
+     * Builds the shell command string for executing the selected script.
+     *
+     * @return string The constructed command line.
+     */
     public function build_cmd() {
         global $CFG;
         setlocale(LC_CTYPE, "en_US.UTF-8");
         $data = $this->get_data();
         $script = $this->cliscripts[$data->script];
+        $phpbinary = $CFG->pathtophp;
         $command = [
-            escapeshellarg($CFG->pathtophp),
+            escapeshellarg($phpbinary),
             escapeshellarg($script->file_path)
         ];
         foreach ($script->get_options() as $option) {

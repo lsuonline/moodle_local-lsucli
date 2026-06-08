@@ -49,15 +49,31 @@ if (!function_exists('array_find_key')) {
 }
 
 class CLIScript {
+
+    /** @var string The full path to the script file. */
     public string $file_path;
+
+    /** @var string The normalized name of the script. */
     public string $file_name;
+
+    /** @var string The help text associated with the script. */
     public string $help_text;
-    /** @var CLIOption[] $options */
+
+    /** @var CLIOption[] An array of options parsed from the help text. */
     public array $options;
+
+    /** @var string The example usage text associated with the script. */
     public string $example_text;
 
+    /**
+     * Constructs a new CLIScript instance.
+     *
+     * @param string $file_name The name of the CLI script.
+     */
     public function __construct($file_name) {
         global $CFG, $DB;
+
+        $file_name = basename($file_name);
         $this->file_path = "$CFG->dirroot/admin/cli/$file_name";
         $this->file_name = self::normalize_name($file_name);
 
@@ -71,6 +87,11 @@ class CLIScript {
         $this->parse_help_text();
     }
 
+    /**
+     * Extracts the help text directly from the script file content.
+     *
+     * @return void
+     */
     function grep_help_text() {
         $full_text = file_get_contents($this->file_path);
         $lines = explode(PHP_EOL, $full_text);
@@ -105,7 +126,9 @@ class CLIScript {
     }
 
     /**
-     * Scans the script file for its information.
+     * Parses the extracted help text to build the script options and example text.
+     *
+     * @return void
      */
     function parse_help_text() {
         $lines = explode(PHP_EOL, $this->help_text);
@@ -131,9 +154,6 @@ class CLIScript {
                 $example_lines[] = $line;
             }
         }
-        // exec("php $this->file_path -- -h", $output);
-        // $this->help_text = implode(PHP_EOL, $output);
-        // $this->help_text = preg_replace('/^Warning\:.*$', '', $this->help_text) ?? '';
         $this->options = CLIOption::parse_lines($option_lines);
         $this->special_cases();
         $this->example_text = implode(PHP_EOL, $example_lines);
@@ -237,6 +257,7 @@ class CLIScript {
             'themes' => [
                 'type' => OptionType::STRING,
             ],
+
             // Help text lies, the script accepts `--direction=ltr|rtl`.
             'direction' => [
                 'type' => OptionType::STRING,
@@ -271,6 +292,7 @@ class CLIScript {
             ],
         ],
         'maintenance' => [
+
             // `MINUTES` isn't in the parser's NUMBER_TEXTS whitelist, so it
             // falls through to STRING; the script casts to int either way.
             'enablelater' => [
@@ -291,6 +313,12 @@ class CLIScript {
             ],
         ],
     ];
+
+    /**
+     * Applies special case corrections to poorly documented script options.
+     *
+     * @return void
+     */
     private function special_cases() {
         $params = self::SPECIAL_CASE_PROPS[$this->file_name] ?? [];
         if (empty($params)) {

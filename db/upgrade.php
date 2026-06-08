@@ -26,11 +26,18 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+/**
+ * Executes upgrade scripts for local_lsucli.
+ *
+ * @param int $oldversion The version of the plugin currently installed.
+ * @return bool True on success.
+ */
 function xmldb_local_lsucli_upgrade($oldversion) {
     global $DB;
     $dbman = $DB->get_manager();
 
     if ($oldversion < 2024051403) {
+
         // Define table local_lsucli_helptext.
         $table = new xmldb_table('local_lsucli_helptext');
 
@@ -51,4 +58,3 @@ function xmldb_local_lsucli_upgrade($oldversion) {
 
     return true;
 }
-

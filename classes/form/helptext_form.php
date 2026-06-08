@@ -31,6 +31,11 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->libdir . '/formslib.php');
 
 class helptext_form extends \moodleform {
+    /**
+     * Defines the form elements for configuring the help text of CLI scripts.
+     *
+     * @return void
+     */
     protected function definition() {
         $mform = $this->_form;
         $scripts = $this->_customdata['scripts'] ?? [];

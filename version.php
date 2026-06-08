@@ -27,7 +27,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_lsucli';
-$plugin->version = 20260605800;
+$plugin->version = 2026060800;
 $plugin->requires = 2024100700;
 $plugin->maturity = MATURITY_BETA;
 $plugin->release = '0.5.0_Baleful-Binturong';

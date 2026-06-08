@@ -11,7 +11,7 @@ class run_cli_script extends \core\task\adhoc_task {
         global $CFG;
 
         $script_name = $this->get_custom_data()->script_name;
-        $script_path = $CFG->dirroot . '/cli/' . $script_name;
+        $script_path = $CFG->dirroot . '/admin/cli/' . $script_name;
 
         if (file_exists($script_path)) {
             $cmd = $CFG->pathtophp . ' ' . escapeshellarg($script_path);

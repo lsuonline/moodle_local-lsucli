@@ -226,6 +226,9 @@ class CLIScript {
                 'type' => OptionType::STRING,
                 'required' => true,
             ],
+            'non-interactive' => [
+                'default_enabled' => true,
+            ],
         ],
         'fix_course_sequence' => [
             'courses' => [

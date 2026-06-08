@@ -127,6 +127,10 @@ class lsucli_form extends \moodleform
 
             $mform->addGroup($group, $groupname, '', '', false);
             $mform->hideIf($groupname, 'script', 'neq', $script->file_name);
+            
+            if ($option->default_enabled) {
+                $mform->setDefault($enablekey, 1);
+            }
         }
     }
 

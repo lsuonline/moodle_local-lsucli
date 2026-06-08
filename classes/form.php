@@ -1,4 +1,30 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * Version details for local_lsucli.
+ *
+ * @package    local_lsucli
+ * @copyright  2026 onwards Louisiana State University
+ * @copyright  2026 onwards Steven Mattsen
+ * @copyright  2026 onwards Robert Russo
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die();
 
 require_once(__DIR__ . '/cli_option.php');
 require_once(__DIR__ . '/cli_script.php');
@@ -25,7 +51,8 @@ class lsucli_form extends \moodleform
             $scripts[$script->file_name] = $script->file_name;
         }
         $mform->addElement('autocomplete', 'script', 'Script to execute', $scripts);
-        // Block submission when no script is picked
+
+        // Block submission when no script is picked.
         $mform->addRule('script', get_string('err_required', 'local_lsucli'), 'required', null, 'client');
         $this->add_script_elements($this->cliscripts);
         $mform->addElement('static', null, '<command_preview />');
@@ -77,6 +104,7 @@ class lsucli_form extends \moodleform
 
             // Label spans full row for clickability - checkbox label includes the option name.
             if ($option->type == OptionType::FLAG) {
+
                 // FLAG: Just a checkbox - presence means enabled.
                 $group[] = $mform->createElement(
                     'advcheckbox',
@@ -86,6 +114,7 @@ class lsucli_form extends \moodleform
                     ['title' => $option->description, 'class' => 'lsucli-checkbox'],
                 );
             } else if ($option->type == OptionType::BOOL) {
+
                 // BOOL: Checkbox to enable + toggle switch for true/false.
                 $group[] = $mform->createElement(
                     'advcheckbox',
@@ -105,6 +134,7 @@ class lsucli_form extends \moodleform
                 );
                 $group[] = $mform->createElement('html', '</div>');
             } else {
+
                 // STRING or NUMBER: Checkbox to enable + text input for value.
                 $group[] = $mform->createElement(
                     'advcheckbox',
@@ -133,7 +163,7 @@ class lsucli_form extends \moodleform
 
             $mform->addGroup($group, $groupname, '', '', false);
             $mform->hideIf($groupname, 'script', 'neq', $script->file_name);
-            
+
             if ($option->default_enabled) {
                 $mform->setDefault($enablekey, 1);
             }
@@ -150,28 +180,30 @@ class lsucli_form extends \moodleform
         $data = $this->get_data();
         $script = $this->cliscripts[$data->script];
         $command = [
-            $CFG->pathtophp,
-            $script->file_path,
-            $data->{$data->script . '_custom_pre'} ?? null
+            escapeshellarg($CFG->pathtophp),
+            escapeshellarg($script->file_path)
         ];
         foreach ($script->get_options() as $option) {
             $unique = $data->script . '_' . $option->longname;
             $enablekey = $unique . '_enabled';
 
             if ($option->type == OptionType::FLAG) {
+
                 // FLAG: Just check if enabled.
                 $enabled = $data->{$enablekey} ?? 0;
                 if ($enabled) {
                     $command[] = "--$option->longname";
                 }
             } else if ($option->type == OptionType::BOOL) {
+
                 // BOOL: Check if enabled, then get true/false value.
                 $enabled = $data->{$enablekey} ?? 0;
                 if ($enabled) {
                     $value = $data->{$unique} ?? 'false';
-                    $command[] = "--$option->longname=$value";
+                    $command[] = "--$option->longname=" . escapeshellarg((string)$value);
                 }
             } else {
+
                 // STRING or NUMBER: Check if enabled, then get value.
                 $enabled = $data->{$enablekey} ?? 0;
                 $value = $data->{$unique} ?? null;
@@ -179,15 +211,15 @@ class lsucli_form extends \moodleform
                     if ($option->type == OptionType::STRING) {
                         $command[] = "--$option->longname=" . escapeshellarg($value);
                     } else {
-                        $command[] = "--$option->longname=$value";
+                        $command[] = "--$option->longname=" . escapeshellarg((string)$value);
                     }
                 }
             }
         }
-        $command[] = $data->{$data->script . '_custom_post'} ?? null;
         $command = array_filter($command, function($v) {
             return $v !== null;
         });
+
         // 2>&1: cli_error writes to stderr; exec() in index.php only captures stdout.
         $command = implode(' ', $command) . ' 2>&1';
         return $command;

@@ -182,7 +182,8 @@ class lsucli_form extends \moodleform
         $command = array_filter($command, function($v) {
             return $v !== null;
         });
-        $command = implode(' ', $command);
+        // 2>&1: cli_error writes to stderr; exec() in index.php only captures stdout.
+        $command = implode(' ', $command) . ' 2>&1';
         return $command;
     }
 }

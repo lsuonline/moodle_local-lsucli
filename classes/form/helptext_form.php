@@ -14,6 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+/**
+ * Help text form class for local_lsucli.
+ *
+ * @package    local_lsucli
+ * @copyright  2026 onwards Louisiana State University
+ * @copyright  2026 onwards Steven Mattsen
+ * @copyright  2026 onwards Robert Russo
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
 namespace local_lsucli\form;
 
 defined('MOODLE_INTERNAL') || die();
@@ -39,4 +49,3 @@ class helptext_form extends \moodleform {
         $this->add_action_buttons();
     }
 }
-

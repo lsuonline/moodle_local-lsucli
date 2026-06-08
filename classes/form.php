@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version details for local_lsucli.
+ * Form class for local_lsucli.
  *
  * @package    local_lsucli
  * @copyright  2026 onwards Louisiana State University

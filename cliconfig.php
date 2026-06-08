@@ -14,6 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+/**
+ * CLI configuration page for local_lsucli.
+ *
+ * @package    local_lsucli
+ * @copyright  2026 onwards Louisiana State University
+ * @copyright  2026 onwards Steven Mattsen
+ * @copyright  2026 onwards Robert Russo
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
 require_once(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 require_once(__DIR__ . '/classes/cli_option.php');

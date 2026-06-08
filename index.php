@@ -63,25 +63,6 @@ if ($data = $mform->get_data()) {
     }
     $command = $mform->build_cmd();
     $resultcode = null;
-    exec($command, $output, $resultcode);
-
-    // Limit how much script output we render based on admin settings.
-    $maxlines = (int) get_config('local_lsucli', 'maxoutputlines');
-    if ($maxlines > 0 && count($output) > $maxlines) {
-        $output = array_slice($output, 0, $maxlines);
-        $output[] = get_string('outputtruncated', 'local_lsucli', $maxlines);
-    }
-
-    if ($resultcode === 0) {
-        $message = get_string('runsuccess', 'local_lsucli', $data->script);
-        $messagetype = \core\output\notification::NOTIFY_SUCCESS;
-    } else {
-        $message = get_string('runfailed', 'local_lsucli', (object) [
-            'script' => $data->script,
-            'code' => $resultcode ?? -1,
-        ]);
-        $messagetype = \core\output\notification::NOTIFY_ERROR;
-    }
 
     $SESSION->local_lsucli_nonce = random_string(20);
 
@@ -109,12 +90,67 @@ if ($data = $mform->get_data()) {
     echo $OUTPUT->header();
     echo $OUTPUT->heading(get_string('lsucli', 'local_lsucli'));
 
-    echo $OUTPUT->notification($message, $messagetype);
     echo $actionrow;
     echo '<div class="lsucli-command-preview">'
         . s(get_string('executedcommand', 'local_lsucli')) . ': ' . s($command)
         . '</div>';
-    echo '<pre class="lsucli-output">' . s(implode("\n", $output)) . '</pre>';
+    echo '<pre class="lsucli-output">';
+    @ob_flush();
+    @flush();
+
+    $maxlines = (int) get_config('local_lsucli', 'maxoutputlines');
+    $linecount = 0;
+
+    $descriptorspec = [
+        0 => ["pipe", "r"],
+        1 => ["pipe", "w"],
+        2 => ["redirect", 1]
+    ];
+
+    $process = proc_open($command, $descriptorspec, $pipes);
+
+    if (is_resource($process)) {
+        fclose($pipes[0]);
+
+        while (($line = fgets($pipes[1])) !== false) {
+            $linecount++;
+            if ($maxlines > 0 && $linecount > $maxlines) {
+                echo '.';
+                if (($linecount - $maxlines) % 100 === 0) {
+                    echo "\n";
+                }
+            } else {
+                echo s($line);
+            }
+            @ob_flush();
+            @flush();
+        }
+        fclose($pipes[1]);
+
+        $resultcode = proc_close($process);
+    } else {
+        echo s("Error: Failed to open process.");
+        $resultcode = -1;
+    }
+
+    if ($maxlines > 0 && $linecount > $maxlines) {
+        echo "\n" . s(get_string('outputtruncated', 'local_lsucli', $maxlines)) . "\n";
+    }
+
+    echo '</pre>';
+
+    if ($resultcode === 0) {
+        $message = get_string('runsuccess', 'local_lsucli', $data->script);
+        $messagetype = \core\output\notification::NOTIFY_SUCCESS;
+    } else {
+        $message = get_string('runfailed', 'local_lsucli', (object) [
+            'script' => $data->script,
+            'code' => $resultcode ?? -1,
+        ]);
+        $messagetype = \core\output\notification::NOTIFY_ERROR;
+    }
+
+    echo $OUTPUT->notification($message, $messagetype);
     echo $actionrow;
 
     echo $OUTPUT->footer();
@@ -132,6 +168,7 @@ echo '<div id="command-preview" class="lsucli-command-preview">Command Preview: 
 echo $OUTPUT->footer();
 ?>
 <script>
+
     // Moodle themes don't always like setting titles on labels properly.
     document.querySelectorAll('input').forEach((e, i) => {
         var label = e.closest('label');

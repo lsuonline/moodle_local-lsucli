@@ -66,6 +66,26 @@ if ($data = $mform->get_data()) {
 
     $SESSION->local_lsucli_nonce = random_string(20);
 
+    // Deal with the run mode.
+    if (isset($data->runmode) && $data->runmode === 'adhoc') {
+        $task = new \local_lsucli\task\run_cli_script();
+        $task->set_custom_data([
+            'script_name' => $data->script,
+            'command' => $command
+        ]);
+        \core\task\manager::queue_adhoc_task($task);
+
+        $url = new moodle_url('/admin/tool/task/adhoctasks.php');
+        $link = \html_writer::link($url, get_string('adhoctasks', 'tool_task'));
+        $msg = get_string('taskscheduled', 'local_lsucli') . ' ' . $link;
+        redirect(
+            new moodle_url('/local/lsucli/index.php'),
+            $msg,
+            null,
+            \core\output\notification::NOTIFY_SUCCESS
+        );
+    }
+
     $backurl = new moodle_url('/local/lsucli/index.php');
 
     $rerunform = '<form method="post" action="' . s($backurl->out(false)) . '" class="singlebutton lsucli-rerun-form">';

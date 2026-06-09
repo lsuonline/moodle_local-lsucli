@@ -54,3 +54,7 @@ $string['back_to_lsucli'] = 'Back to LSU CLI';
 $string['run_again'] = 'Run again';
 $string['executedcommand'] = 'Executed command';
 $string['err_replay'] = 'This run has already been processed. Use "Run again" or resubmit the form to execute it again.';
+$string['runmode'] = 'Execution mode';
+$string['runmode_inline'] = 'Run now (in browser)';
+$string['runmode_adhoc'] = 'Schedule as adhoc task';
+$string['taskscheduled'] = 'Task scheduled successfully.';

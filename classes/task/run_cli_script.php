@@ -29,21 +29,58 @@ namespace local_lsucli\task;
 defined('MOODLE_INTERNAL') || die();
 
 class run_cli_script extends \core\task\adhoc_task {
+
     /**
-     * Executes the task to run the specified CLI script.
+     * Executes the task to run the specified CLI script with arguments.
      *
      * @return void
      */
     public function execute() {
         global $CFG;
 
-        $script_name = basename($this->get_custom_data()->script_name);
-        $script_path = $CFG->dirroot . '/admin/cli/' . $script_name;
+        $customdata = $this->get_custom_data();
+        $command = $customdata->command ?? null;
 
-        if (file_exists($script_path)) {
-            $phpbinary = $CFG->pathtophp;
-            $cmd = escapeshellarg($phpbinary) . ' ' . escapeshellarg($script_path);
-            proc_open($cmd, [], $pipes);
+        // Fallback for previously scheduled tasks that only had script_name.
+        if (!$command && isset($customdata->script_name)) {
+            $script_name = basename($customdata->script_name);
+            $script_path = $CFG->dirroot . '/admin/cli/' . $script_name;
+            if (file_exists($script_path)) {
+                $phpbinary = $CFG->pathtophp;
+                $command = escapeshellarg($phpbinary) . ' ' . escapeshellarg($script_path);
+            }
+        }
+
+        // Run this as a scheduled task based on the command sent.
+        if ($command) {
+            mtrace("Executing command: " . $command);
+
+            $descriptorspec = [
+                0 => ["pipe", "r"],
+                1 => ["pipe", "w"],
+                2 => ["redirect", 1]
+            ];
+
+            $process = proc_open($command, $descriptorspec, $pipes);
+
+            if (is_resource($process)) {
+                fclose($pipes[0]);
+
+                while (($line = fgets($pipes[1])) !== false) {
+                    mtrace(trim($line));
+                }
+                fclose($pipes[1]);
+
+                $resultcode = proc_close($process);
+
+                if ($resultcode !== 0) {
+                    mtrace("Command failed with result code: " . $resultcode);
+                }
+            } else {
+                mtrace("Error: Failed to open process.");
+            }
+        } else {
+            mtrace("Error: No valid command or script_name provided.");
         }
     }
 }

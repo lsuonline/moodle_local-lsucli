@@ -64,6 +64,15 @@ class lsucli_form extends \moodleform {
         $mform->addRule('script', get_string('err_required', 'local_lsucli'), 'required', null, 'client');
         $this->add_script_elements($this->cliscripts);
         $mform->addElement('static', null, '<command_preview />');
+
+        // Add the option to either run inline or adhoc.
+        $runoptions = [
+            'inline' => get_string('runmode_inline', 'local_lsucli'),
+            'adhoc' => get_string('runmode_adhoc', 'local_lsucli'),
+        ];
+        $mform->addElement('select', 'runmode', get_string('runmode', 'local_lsucli'), $runoptions);
+        $mform->setDefault('runmode', 'inline');
+
         $mform->addElement('submit', 'submitbutton', 'Run Task');
     }
 

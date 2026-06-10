@@ -15,13 +15,42 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Library functions for local_lsucli.
+ * Help text form class for local_lsucli.
  *
  * @package    local_lsucli
  * @copyright  2026 onwards Louisiana State University
- * @copyright  2026 onwards Steven Mattsen
+ * @copyright  2026 onwards Steve Mattsen
  * @copyright  2026 onwards Robert Russo
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+namespace local_lsucli\form;
+
 defined('MOODLE_INTERNAL') || die();
+
+require_once($CFG->libdir . '/formslib.php');
+
+class helptext_form extends \moodleform {
+    /**
+     * Defines the form elements for configuring the help text of CLI scripts.
+     *
+     * @return void
+     */
+    protected function definition() {
+        $mform = $this->_form;
+        $scripts = $this->_customdata['scripts'] ?? [];
+
+        foreach ($scripts as $scriptname => $script) {
+            $mform->addElement('header', 'header_' . $scriptname, $scriptname);
+            $mform->addElement(
+                'textarea',
+                'helptext_' . $scriptname,
+                get_string('helptext', 'local_lsucli'),
+                ['rows' => 10, 'cols' => 80]
+            );
+            $mform->setType('helptext_' . $scriptname, PARAM_RAW);
+        }
+
+        $this->add_action_buttons();
+    }
+}

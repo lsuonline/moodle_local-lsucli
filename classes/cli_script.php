@@ -1,4 +1,29 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * CLI script class for local_lsucli.
+ *
+ * @package    local_lsucli
+ * @copyright  2026 onwards Louisiana State University
+ * @copyright  2026 onwards Steve Mattsen
+ * @copyright  2026 onwards Robert Russo
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
 namespace local_lsucli;
 
 defined('MOODLE_INTERNAL') || die();
@@ -24,22 +49,49 @@ if (!function_exists('array_find_key')) {
 }
 
 class CLIScript {
+
+    /** @var string The full path to the script file. */
     public string $file_path;
+
+    /** @var string The normalized name of the script. */
     public string $file_name;
+
+    /** @var string The help text associated with the script. */
     public string $help_text;
-    /** @var CLIOption[] $options */
+
+    /** @var CLIOption[] An array of options parsed from the help text. */
     public array $options;
+
+    /** @var string The example usage text associated with the script. */
     public string $example_text;
 
+    /**
+     * Constructs a new CLIScript instance.
+     *
+     * @param string $file_name The name of the CLI script.
+     */
     public function __construct($file_name) {
-        global $CFG;
+        global $CFG, $DB;
+
+        $file_name = basename($file_name);
         $this->file_path = "$CFG->dirroot/admin/cli/$file_name";
-        $file_name = substr($file_name, 0, -4);
-        $this->file_name = ltrim(strtolower(preg_replace('/([A-Z])/', '_$1', $file_name)), '_');
-        $this->grep_help_text();
+        $this->file_name = self::normalize_name($file_name);
+
+        // Check for custom help text in the database first.
+        $custom = $DB->get_record('local_lsucli_helptext', ['scriptname' => $this->file_name]);
+        if ($custom && !empty($custom->helptext)) {
+            $this->help_text = $custom->helptext;
+        } else {
+            $this->grep_help_text();
+        }
         $this->parse_help_text();
     }
 
+    /**
+     * Extracts the help text directly from the script file content.
+     *
+     * @return void
+     */
     function grep_help_text() {
         $full_text = file_get_contents($this->file_path);
         $lines = explode(PHP_EOL, $full_text);
@@ -74,7 +126,9 @@ class CLIScript {
     }
 
     /**
-     * Scans the script file for its information.
+     * Parses the extracted help text to build the script options and example text.
+     *
+     * @return void
      */
     function parse_help_text() {
         $lines = explode(PHP_EOL, $this->help_text);
@@ -100,9 +154,6 @@ class CLIScript {
                 $example_lines[] = $line;
             }
         }
-        // exec("php $this->file_path -- -h", $output);
-        // $this->help_text = implode(PHP_EOL, $output);
-        // $this->help_text = preg_replace('/^Warning\:.*$', '', $this->help_text) ?? '';
         $this->options = CLIOption::parse_lines($option_lines);
         $this->special_cases();
         $this->example_text = implode(PHP_EOL, $example_lines);
@@ -113,14 +164,72 @@ class CLIScript {
      * @return CLIScript[]
      */
     public static function gen_scripts(): array {
-        global $CFG;
         $results = [];
-        $scripts = array_diff(scandir($CFG->dirroot . '/admin/cli'), array('..', '.'));
-        foreach ($scripts as $script) {
+        foreach (self::list_filenames() as $script) {
             $new_script = new CLIScript($script);
             $results[$new_script->file_name] = $new_script;
         }
         return $results;
+    }
+
+    /**
+     * Returns a sorted list of .php filenames under admin/cli.
+     * @return string[]
+     */
+    public static function list_filenames(): array {
+        global $CFG;
+        $entries = scandir($CFG->dirroot . '/admin/cli');
+        if ($entries === false) {
+            return [];
+        }
+        $files = array_filter($entries, function ($f) {
+            return $f !== '.' && $f !== '..' && substr($f, -4) === '.php';
+        });
+        sort($files);
+        return array_values($files);
+    }
+
+    /**
+     * Converts a file name path to a normal 'purge_caches' style name.
+     * @return string
+     */
+    public static function normalize_name(string $file_name): string {
+        if (substr($file_name, -4) === '.php') {
+            $file_name = substr($file_name, 0, -4);
+        }
+        return ltrim(strtolower(preg_replace('/([A-Z])/', '_$1', $file_name)), '_');
+    }
+
+    /**
+     * Returns all enabled cli script names
+     * @return string[]
+     */
+    public static function get_enabled_names(): array {
+        $value = get_config('local_lsucli', 'enabledscripts');
+        if ($value === false || $value === null) {
+            return array_map([self::class, 'normalize_name'], self::list_filenames());
+        }
+        if ($value === '') {
+            return [];
+        }
+        return array_values(array_filter(array_map('trim', explode(',', $value)), 'strlen'));
+    }
+
+    /**
+     * Checks if a script is enabled by the admin allowlist
+     * @return bool
+     */
+    public static function is_enabled(string $name): bool {
+        return in_array($name, self::get_enabled_names(), true);
+    }
+
+    /**
+     * Get all enabled scripts as CLIScript objects
+     * @return CLIScript[]
+     */
+    public static function gen_enabled_scripts(): array {
+        $enabled = array_flip(self::get_enabled_names());
+        return array_intersect_key(self::gen_scripts(), $enabled);
     }
 
     /**
@@ -130,7 +239,11 @@ class CLIScript {
         return $this->options;
     }
 
-    /** @var array<array<array>> An array of corrected values for poor documentation in the script files. Structure is [file_name][longname][property] = <NEW_VALUE> */
+    /**
+     * An array of corrected values for poor documentation in the script files.
+     * Structure is [file_name][longname][property] = <NEW_VALUE>
+     * @var array<string, array<string, array<string, mixed>>>
+     */
     const SPECIAL_CASE_PROPS = [
         'adhoc_task' => [
             'classname' => [
@@ -143,7 +256,12 @@ class CLIScript {
         'build_theme_css' => [
             'themes' => [
                 'type' => OptionType::STRING,
-            ]
+            ],
+
+            // Help text lies, the script accepts `--direction=ltr|rtl`.
+            'direction' => [
+                'type' => OptionType::STRING,
+            ],
         ],
         'checks' => [
             'filter' => [
@@ -158,6 +276,9 @@ class CLIScript {
                 'type' => OptionType::STRING,
                 'required' => true,
             ],
+            'non-interactive' => [
+                'default_enabled' => true,
+            ],
         ],
         'fix_course_sequence' => [
             'courses' => [
@@ -170,14 +291,36 @@ class CLIScript {
                 'type' => OptionType::STRING,
             ],
         ],
+        'maintenance' => [
+
+            // `MINUTES` isn't in the parser's NUMBER_TEXTS whitelist, so it
+            // falls through to STRING; the script casts to int either way.
+            'enablelater' => [
+                'type' => OptionType::NUMBER,
+            ],
+        ],
         'purge_caches' => [
             'courses' => [
                 'type' => OptionType::STRING,
             ],
         ],
+        'upgrade' => [
+            'maintenance' => [
+                'type' => OptionType::BOOL,
+            ],
+            'non-interactive' => [
+                'default_enabled' => true,
+            ],
+        ],
     ];
+
+    /**
+     * Applies special case corrections to poorly documented script options.
+     *
+     * @return void
+     */
     private function special_cases() {
-        $params = self::SPECIAL_CASE_PROPS[$this->file_name];
+        $params = self::SPECIAL_CASE_PROPS[$this->file_name] ?? [];
         if (empty($params)) {
             return;
         }

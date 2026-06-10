@@ -19,7 +19,7 @@
  *
  * @package    local_lsucli
  * @copyright  2026 onwards Louisiana State University
- * @copyright  2026 onwards Steven Mattsen
+ * @copyright  2026 onwards Steve Mattsen
  * @copyright  2026 onwards Robert Russo
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */

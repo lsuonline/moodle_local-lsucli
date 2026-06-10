@@ -33,7 +33,6 @@ require_once(__DIR__ . '/classes/form.php');
 use local_lsucli\CLIScript;
 
 admin_externalpage_setup('local_lsucli_runcli');
-$PAGE->requires->css('/local/lsucli/styles.css');
 
 unset($SESSION->local_lsucli_lastrun, $SESSION->local_lsucli_lastformdata);
 
@@ -111,12 +110,16 @@ if ($data = $mform->get_data()) {
     echo $OUTPUT->heading(get_string('lsucli', 'local_lsucli'));
 
     echo $actionrow;
+
+    @ob_flush();
+    @flush();
+
+    echo '<div class="lsucli-outputwindow">';
     echo '<div class="lsucli-command-preview">'
         . s(get_string('executedcommand', 'local_lsucli')) . ': ' . s($command)
         . '</div>';
+
     echo '<pre class="lsucli-output">';
-    @ob_flush();
-    @flush();
 
     $maxlines = (int) get_config('local_lsucli', 'maxoutputlines');
     $linecount = 0;
@@ -158,6 +161,7 @@ if ($data = $mform->get_data()) {
     }
 
     echo '</pre>';
+    echo '</div>';
 
     if ($resultcode === 0) {
         $message = get_string('runsuccess', 'local_lsucli', $data->script);
@@ -182,8 +186,6 @@ echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('lsucli', 'local_lsucli'));
 
 $mform->display();
-
-echo '<div id="command-preview" class="lsucli-command-preview">Command Preview: </div>';
 
 echo $OUTPUT->footer();
 ?>
